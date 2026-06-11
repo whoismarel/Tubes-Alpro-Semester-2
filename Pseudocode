@@ -1,0 +1,262 @@
+Constant MAX: integer = 100
+
+type Petugas : <
+    username : string,
+    password : string,
+    nama     : string
+>
+
+type Kendaraan : <
+    platNomor : string,
+    jenis     : string,
+    durasi    : integer,
+    biaya     : integer,
+    status    : string
+>
+
+type ArrPetugas array [0..MAX-1] of Petugas
+type ArrKendaraan array [0..MAX-1] of Kendaraan
+
+// Deklarasi Variabel Global
+dataPetugas   : ArrPetugas
+nPetugas      : integer
+dataKendaraan : ArrKendaraan
+nKendaraan    : integer
+
+procedure cetakBanner()
+kamus
+algoritma
+    output("\n><><><><><><><><><><><><><><><><><><><><><><><><><><><><><")
+    output("            SISTEM MANAJEMEN PARKIR PANANDYA MALL         ")
+    output("><><><><><><><><><><><><><><><><><><><><><><><><><><><><><")
+endprocedure
+
+procedure cetakGaris()
+kamus
+algoritma
+    output("----------------------------------------------------------")
+endprocedure
+
+function cariPetugas(user: string, pass: string) -> integer
+{ Mengembalikan indeks petugas jika ditemukan, atau -1 jika tidak ditemukan }
+kamus
+    idx, i: integer
+algoritma
+    idx <- -1
+    i <- 0
+    while (i < nPetugas) and (idx == -1) do
+        if dataPetugas[i].username == user and dataPetugas[i].password == pass then
+            idx <- i
+        endif
+        i <- i + 1
+    endwhile
+    -> idx
+endfunction
+
+function binarySearchKendaraan(plat: string) -> integer
+{ Mengembalikan indeks kendaraan berdasarkan plat nomor, atau -1 jika tidak ditemukan }
+kamus
+    kiri, kanan, tengah, idx: integer
+algoritma
+    kiri <- 0
+    kanan <- nKendaraan - 1
+    idx <- -1
+
+    while (kiri <= kanan) and (idx == -1) do
+        tengah <- (kiri + kanan) div 2
+        if dataKendaraan[tengah].platNomor == plat then
+            idx <- tengah
+        else if dataKendaraan[tengah].platNomor < plat then
+            kiri <- tengah + 1
+        else
+            kanan <- tengah - 1
+        endif
+    endwhile
+    -> idx
+endfunction
+
+procedure sortPlatAsc()
+{ IS: Array dataKendaraan terdefinisi dengan nKendaraan elemen terurut sembarang
+  FS: Array dataKendaraan terurut menaik (ascending) berdasarkan plat nomor menggunakan selection sort }
+kamus
+    i, j, minIdx: integer
+    temp: Kendaraan
+algoritma
+    for i <- 0 to nKendaraan - 2 do
+        minIdx <- i
+        for j <- i + 1 to nKendaraan - 1 do
+            if dataKendaraan[j].platNomor < dataKendaraan[minIdx].platNomor then
+                minIdx <- j
+            endif
+        endfor
+        temp <- dataKendaraan[i]
+        dataKendaraan[i] <- dataKendaraan[minIdx]
+        dataKendaraan[minIdx] <- temp
+    endfor
+endprocedure
+
+procedure sortBiayaDesc()
+{ IS: Array dataKendaraan terdefinisi dengan nKendaraan elemen terurut sembarang
+  FS: Array dataKendaraan terurut menurun (descending) berdasarkan biaya menggunakan insertion sort }
+kamus
+    i, j: integer
+    key: Kendaraan
+algoritma
+    for i <- 1 to nKendaraan - 1 do
+        key <- dataKendaraan[i]
+        j <- i - 1
+        while j >= 0 and dataKendaraan[j].biaya < key.biaya do
+            dataKendaraan[j+1] <- dataKendaraan[j]
+            j <- j - 1
+        endwhile
+        dataKendaraan[j+1] <- key
+    endfor
+endprocedure
+
+procedure kendaraanMasuk()
+{ IS: Array dataKendaraan tersedia
+  FS: Data kendaraan baru ditambahkan jika array belum penuh }
+kamus
+    plat, jenis: string
+algoritma
+    if nKendaraan < MAX then
+        output("Masukkan Plat Nomor (Tanpa Spasi, ex: BK1234AB) : ")
+        input(plat)
+        output("Masukkan Jenis (Mobil/Motor)                    : ")
+        input(jenis)
+
+        dataKendaraan[nKendaraan].platNomor <- plat
+        dataKendaraan[nKendaraan].jenis <- jenis
+        dataKendaraan[nKendaraan].status <- "PARKIR"
+        dataKendaraan[nKendaraan].biaya <- 0
+        nKendaraan <- nKendaraan + 1
+        
+        output("Berhasil! Palang terbuka. Kendaraan berhasil masuk.")
+    else
+        output("Mohon maaf, kapasitas parkir penuh!")
+    endif
+endprocedure
+
+procedure kendaraanKeluar()
+{ IS: Array dataKendaraan terdefinisi 
+  FS: Data durasi dan biaya kendaraan dihitung, status diubah menjadi "KELUAR" }
+kamus
+    plat: string
+    idx, durasi: integer
+algoritma
+    output("Masukkan Plat Nomor Kendaraan Keluar : ")
+    input(plat)
+
+    sortPlatAsc()
+    idx <- binarySearchKendaraan(plat)
+
+    if idx != -1 and dataKendaraan[idx].status == "PARKIR" then
+        output("Berapa jam kendaraan terparkir?      : ")
+        input(durasi)
+
+        dataKendaraan[idx].durasi <- durasi
+        dataKendaraan[idx].status <- "KELUAR"
+
+        if dataKendaraan[idx].jenis == "Mobil" then
+            dataKendaraan[idx].biaya <- 5000 + (durasi * 2000)
+        else
+            dataKendaraan[idx].biaya <- 2000 + (durasi * 1000)
+        endif
+
+        cetakGaris()
+        output("Rincian Pembayaran:")
+        output("Plat Nomor  : ", dataKendaraan[idx].platNomor)
+        output("Total Biaya : Rp", dataKendaraan[idx].biaya)
+        output("Pembayaran sukses. Palang terbuka.")
+    else
+        output("Kendaraan tidak ditemukan atau sudah keluar.")
+    endif
+endprocedure
+
+procedure cetakLaporanPendapatan()
+{ IS: Array dataKendaraan terdefinisi
+  FS: Menampilkan seluruh data laporan parkir terurut berdasarkan biaya menurun }
+kamus
+    i: integer
+algoritma
+    sortBiayaDesc()
+    
+    output("\n LAPORAN KENDARAAN")
+    cetakGaris()
+    output("PLAT NOMOR | JENIS | DURASI | TOTAL BIAYA (Rp)")
+    cetakGaris()
+    
+    for i <- 0 to nKendaraan - 1 do
+        output(dataKendaraan[i].platNomor, " | ", 
+               dataKendaraan[i].jenis, " | ", 
+               dataKendaraan[i].durasi, " | ", 
+               dataKendaraan[i].biaya)
+    endfor
+    cetakGaris()
+endprocedure
+
+// ALGORITMA UTAMA
+kamus
+    pilihanUtama, menuPetugas, idxPetugas: integer
+    user, pass: string
+algoritma
+    // Inisialisasi Data Petugas Dummy
+    dataPetugas[0].username <- "Poltak"
+    dataPetugas[0].password <- "poltak123"
+    dataPetugas[0].nama <- "Pak Poltak"
+    nPetugas <- 1
+    pilihanUtama <- -1
+
+    while true do
+        cetakBanner()
+        output("1. Login Petugas")
+        output("2. Tutup Aplikasi")
+        output("PILIH MENU (1/2): ")
+        input(pilihanUtama)
+
+        if pilihanUtama == 1 then
+            output("\nUsername : ")
+            input(user)
+            output("Password : ")
+            input(pass)
+
+            idxPetugas <- cariPetugas(user, pass)
+            
+            if idxPetugas != -1 then
+                output("><><><><><><><><><><><><><><><><><><><><><><><><><><><><><")
+                output("               Selamat datang ", dataPetugas[idxPetugas].nama, " :)")
+                
+                menuPetugas <- -1
+                while menuPetugas != 4 do
+                    cetakGaris()
+                    output("                    MENU PETUGAS TIKET                 ")
+                    output("><><><><><><><><><><><><><><><><><><><><><><><><><><><><><")
+                    output("1. Kendaraan Masuk")
+                    output("2. Kendaraan Keluar (Hitung Biaya)")
+                    output("3. Cetak Laporan Pendapatan")
+                    output("4. Logout")
+                    output("PILIH MENU (1-4): ")
+                    input(menuPetugas)
+
+                    if menuPetugas == 1 then
+                        kendaraanMasuk()
+                    else if menuPetugas == 2 then
+                        kendaraanKeluar()
+                    else if menuPetugas == 3 then
+                        cetakLaporanPendapatan()
+                    else if menuPetugas == 4 then
+                        output("Log out berhasil. Sampai jumpa!")
+                    else
+                        output("Pilihan tidak valid.")
+                    endif
+                endwhile
+            else
+                output(" Username atau Password salah!")
+            endif
+        else if pilihanUtama == 2 then
+            output("\nSistem ditutup. Terima kasih!")
+            break
+        else
+            output("Pilihan tidak valid.")
+        endif
+    endwhile
