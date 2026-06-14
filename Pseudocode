@@ -1,9 +1,15 @@
-Constant MAX: integer = 100
+// Deklarasi Konstanta, Tipe, dan Array
+Constant NMAX: integer = 100
+Constant LEBAR: integer = 58
 
 type Petugas : <
     username : string,
-    password : string,
-    nama     : string
+    password : string
+>
+
+type Admin : <
+    username : string,
+    password : string
 >
 
 type Kendaraan : <
@@ -14,21 +20,24 @@ type Kendaraan : <
     status    : string
 >
 
-type ArrPetugas array [0..MAX-1] of Petugas
-type ArrKendaraan array [0..MAX-1] of Kendaraan
+type ArrPetugas array [0..NMAX-1] of Petugas
+type ArrKendaraan array [0..NMAX-1] of Kendaraan
 
 // Deklarasi Variabel Global
+admin         : Admin
 dataPetugas   : ArrPetugas
 nPetugas      : integer
 dataKendaraan : ArrKendaraan
 nKendaraan    : integer
 
+// =================== PROSEDUR TAMPILAN ===================
+
 procedure cetakBanner()
 kamus
 algoritma
-    output("\n><><><><><><><><><><><><><><><><><><><><><><><><><><><><><")
-    output("            SISTEM MANAJEMEN PARKIR PANANDYA MALL         ")
-    output("><><><><><><><><><><><><><><><><><><><><><><><><><><><><><")
+    output("\n><><><><><><><><><><><><><><><><><><><><><><><><><><><><")
+    output("           SISTEM MANAJEMEN PARKIR PANANDYA MALL          ")
+    output("><><><><><><><><><><><><><><><><><><><><><><><><><><><><")
 endprocedure
 
 procedure cetakGaris()
@@ -37,8 +46,17 @@ algoritma
     output("----------------------------------------------------------")
 endprocedure
 
+procedure cetakJudulMenu(in judul: string)
+kamus
+algoritma
+    output("================== ", judul, " ==================")
+endprocedure
+
+// =================== SEARCHING & SORTING ===================
+
 function cariPetugas(user: string, pass: string) -> integer
-{ Mengembalikan indeks petugas jika ditemukan, atau -1 jika tidak ditemukan }
+{ IS: Array dataPetugas terdefinisi
+  FS: Mengembalikan indeks petugas jika cocok, atau -1 jika gagal (Sequential Search) }
 kamus
     idx, i: integer
 algoritma
@@ -54,7 +72,8 @@ algoritma
 endfunction
 
 function binarySearchKendaraan(plat: string) -> integer
-{ Mengembalikan indeks kendaraan berdasarkan plat nomor, atau -1 jika tidak ditemukan }
+{ IS: Array dataKendaraan terurut menaik berdasarkan plat nomor
+  FS: Mengembalikan indeks kendaraan jika ditemukan, atau -1 jika gagal }
 kamus
     kiri, kanan, tengah, idx: integer
 algoritma
@@ -76,8 +95,7 @@ algoritma
 endfunction
 
 procedure sortPlatAsc()
-{ IS: Array dataKendaraan terdefinisi dengan nKendaraan elemen terurut sembarang
-  FS: Array dataKendaraan terurut menaik (ascending) berdasarkan plat nomor menggunakan selection sort }
+{ Mengurutkan kendaraan menaik berdasarkan Plat Nomor (Selection Sort) }
 kamus
     i, j, minIdx: integer
     temp: Kendaraan
@@ -95,9 +113,27 @@ algoritma
     endfor
 endprocedure
 
+procedure sortBiayaAsc()
+{ Mengurutkan kendaraan menaik berdasarkan Biaya (Selection Sort) }
+kamus
+    i, j, minIdx: integer
+    temp: Kendaraan
+algoritma
+    for i <- 0 to nKendaraan - 2 do
+        minIdx <- i
+        for j <- i + 1 to nKendaraan - 1 do
+            if dataKendaraan[j].biaya < dataKendaraan[minIdx].biaya then
+                minIdx <- j
+            endif
+        endfor
+        temp <- dataKendaraan[i]
+        dataKendaraan[i] <- dataKendaraan[minIdx]
+        dataKendaraan[minIdx] <- temp
+    endfor
+endprocedure
+
 procedure sortBiayaDesc()
-{ IS: Array dataKendaraan terdefinisi dengan nKendaraan elemen terurut sembarang
-  FS: Array dataKendaraan terurut menurun (descending) berdasarkan biaya menggunakan insertion sort }
+{ Mengurutkan kendaraan menurun berdasarkan Biaya (Insertion Sort) }
 kamus
     i, j: integer
     key: Kendaraan
@@ -113,46 +149,134 @@ algoritma
     endfor
 endprocedure
 
+// =================== CRUD PETUGAS (ADMIN) ===================
+
+procedure tambahPetugas()
+kamus
+    user: string
+    i: integer
+algoritma
+    if nPetugas >= NMAX then
+        output("Data petugas penuh.")
+    else
+        output("Username : ")
+        input(user)
+        
+        i <- 0
+        while i < nPetugas do
+            if dataPetugas[i].username == user then
+                output("Username sudah digunakan.")
+                return
+            endif
+            i <- i + 1
+        endwhile
+
+        dataPetugas[nPetugas].username <- user
+        output("Password : ")
+        input(dataPetugas[nPetugas].password)
+        nPetugas <- nPetugas + 1
+        output("Petugas berhasil ditambahkan.")
+    endif
+endprocedure
+
+procedure editPetugas()
+kamus
+    user, pilihanEdit: string
+    i: integer
+algoritma
+    output("Masukkan Username Petugas : ")
+    input(user)
+
+    i <- 0
+    while i < nPetugas do
+        if dataPetugas[i].username == user then
+            output("1. Edit Username")
+            output("2. Edit Password")
+            input(pilihanEdit)
+
+            if pilihanEdit == "1" then
+                input(dataPetugas[i].username)
+            else if pilihanEdit == "2" then
+                input(dataPetugas[i].password)
+            endif
+            return
+        endif
+        i <- i + 1
+    endwhile
+    output("Petugas tidak ditemukan.")
+endprocedure
+
+procedure hapusPetugas()
+kamus
+    user: string
+    i, j: integer
+algoritma
+    output("Masukkan Username Petugas : ")
+    input(user)
+
+    i <- 0
+    while i < nPetugas do
+        if dataPetugas[i].username == user then
+            j <- i
+            while j < nPetugas - 1 do
+                dataPetugas[j] <- dataPetugas[j+1]
+                j <- j + 1
+            endwhile
+            nPetugas <- nPetugas - 1
+            output("Petugas berhasil dihapus.")
+            return
+        endif
+        i <- i + 1
+    endwhile
+    output("Petugas tidak ditemukan.")
+endprocedure
+
+procedure lihatPetugas()
+kamus
+    i: integer
+algoritma
+    cetakJudulMenu("DAFTAR PETUGAS")
+    for i <- 0 to nPetugas - 1 do
+        output("Username : ", dataPetugas[i].username)
+        output("Password : ", dataPetugas[i].password)
+        cetakGaris()
+    endfor
+endprocedure
+
+// =================== MANAJEMEN KENDARAAN ===================
+
 procedure kendaraanMasuk()
-{ IS: Array dataKendaraan tersedia
-  FS: Data kendaraan baru ditambahkan jika array belum penuh }
 kamus
     plat, jenis: string
 algoritma
-    if nKendaraan < MAX then
-        output("Masukkan Plat Nomor (Tanpa Spasi, ex: BK1234AB) : ")
+    if nKendaraan < NMAX then
         input(plat)
-        output("Masukkan Jenis (Mobil/Motor)                    : ")
         input(jenis)
-
         dataKendaraan[nKendaraan].platNomor <- plat
         dataKendaraan[nKendaraan].jenis <- jenis
         dataKendaraan[nKendaraan].status <- "PARKIR"
         dataKendaraan[nKendaraan].biaya <- 0
         nKendaraan <- nKendaraan + 1
-        
-        output("Berhasil! Palang terbuka. Kendaraan berhasil masuk.")
+        output("Kendaraan berhasil masuk.")
     else
-        output("Mohon maaf, kapasitas parkir penuh!")
+        output("Kapasitas parkir penuh!")
     endif
 endprocedure
 
 procedure kendaraanKeluar()
-{ IS: Array dataKendaraan terdefinisi 
-  FS: Data durasi dan biaya kendaraan dihitung, status diubah menjadi "KELUAR" }
 kamus
     plat: string
     idx, durasi: integer
 algoritma
-    output("Masukkan Plat Nomor Kendaraan Keluar : ")
     input(plat)
-
     sortPlatAsc()
     idx <- binarySearchKendaraan(plat)
 
     if idx != -1 and dataKendaraan[idx].status == "PARKIR" then
-        output("Berapa jam kendaraan terparkir?      : ")
         input(durasi)
+        if durasi <= 0 then
+            durasi <- 1
+        endif
 
         dataKendaraan[idx].durasi <- durasi
         dataKendaraan[idx].status <- "KELUAR"
@@ -162,101 +286,107 @@ algoritma
         else
             dataKendaraan[idx].biaya <- 2000 + (durasi * 1000)
         endif
-
-        cetakGaris()
-        output("Rincian Pembayaran:")
-        output("Plat Nomor  : ", dataKendaraan[idx].platNomor)
-        output("Total Biaya : Rp", dataKendaraan[idx].biaya)
-        output("Pembayaran sukses. Palang terbuka.")
+        output("Rincian Pembayaran...")
     else
         output("Kendaraan tidak ditemukan atau sudah keluar.")
     endif
 endprocedure
 
 procedure cetakLaporanPendapatan()
-{ IS: Array dataKendaraan terdefinisi
-  FS: Menampilkan seluruh data laporan parkir terurut berdasarkan biaya menurun }
 kamus
+    pilih, urut: string
     i: integer
 algoritma
-    sortBiayaDesc()
+    output("FILTER: 1. Semua, 2. Mobil, 3. Motor")
+    input(pilih)
     
-    output("\n LAPORAN KENDARAAN")
-    cetakGaris()
-    output("PLAT NOMOR | JENIS | DURASI | TOTAL BIAYA (Rp)")
-    cetakGaris()
-    
+    output("URUTKAN: 1. Descending, 2. Ascending")
+    input(urut)
+
+    if urut == "1" then
+        sortBiayaDesc()
+    else if urut == "2" then
+        sortBiayaAsc()
+    else
+        return
+    endif
+
+    output("PLAT | JENIS | DURASI | BIAYA")
     for i <- 0 to nKendaraan - 1 do
-        output(dataKendaraan[i].platNomor, " | ", 
-               dataKendaraan[i].jenis, " | ", 
-               dataKendaraan[i].durasi, " | ", 
-               dataKendaraan[i].biaya)
+        if pilih == "1" or 
+          (pilih == "2" and dataKendaraan[i].jenis == "Mobil") or 
+          (pilih == "3" and dataKendaraan[i].jenis == "Motor") then
+            output(dataKendaraan[i].platNomor, dataKendaraan[i].jenis, dataKendaraan[i].durasi, dataKendaraan[i].biaya)
+        endif
     endfor
-    cetakGaris()
 endprocedure
 
-// ALGORITMA UTAMA
-kamus
-    pilihanUtama, menuPetugas, idxPetugas: integer
-    user, pass: string
-algoritma
-    // Inisialisasi Data Petugas Dummy
-    dataPetugas[0].username <- "Poltak"
-    dataPetugas[0].password <- "poltak123"
-    dataPetugas[0].nama <- "Pak Poltak"
-    nPetugas <- 1
-    pilihanUtama <- -1
+// =================== PROGRAM UTAMA ===================
 
-    while true do
+procedure loginAdmin()
+kamus
+    user, pass, menuAdmin: string
+algoritma
+    input(user)
+    input(pass)
+
+    if user == admin.username and pass == admin.password then
+        menuAdmin <- ""
+        while menuAdmin != "5" do
+            cetakJudulMenu("MENU ADMIN")
+            output("1. Tambah, 2. Edit, 3. Hapus, 4. Lihat, 5. Logout")
+            input(menuAdmin)
+
+            if menuAdmin == "1" then tambahPetugas()
+            else if menuAdmin == "2" then editPetugas()
+            else if menuAdmin == "3" then hapusPetugas()
+            else if menuAdmin == "4" then lihatPetugas()
+            endif
+        endwhile
+    else
+        output("Username atau Password Admin salah!")
+    endif
+endprocedure
+
+algoritma utama main()
+kamus
+    pilihanUtama, user, pass, menuPetugas: string
+    idxPetugas: integer
+algoritma
+    admin.username <- "admin"
+    admin.password <- "sipalingadmin"
+    pilihanUtama <- ""
+
+    while pilihanUtama != "3" do
         cetakBanner()
-        output("1. Login Petugas")
-        output("2. Tutup Aplikasi")
-        output("PILIH MENU (1/2): ")
+        output("1. Login Admin, 2. Login Petugas, 3. Tutup Aplikasi")
         input(pilihanUtama)
 
-        if pilihanUtama == 1 then
-            output("\nUsername : ")
+        if pilihanUtama == "1" then
+            loginAdmin()
+        else if pilihanUtama == "2" then
             input(user)
-            output("Password : ")
             input(pass)
-
             idxPetugas <- cariPetugas(user, pass)
-            
+
             if idxPetugas != -1 then
-                output("><><><><><><><><><><><><><><><><><><><><><><><><><><><><><")
-                output("               Selamat datang ", dataPetugas[idxPetugas].nama, " :)")
-                
-                menuPetugas <- -1
-                while menuPetugas != 4 do
-                    cetakGaris()
-                    output("                    MENU PETUGAS TIKET                 ")
-                    output("><><><><><><><><><><><><><><><><><><><><><><><><><><><><><")
-                    output("1. Kendaraan Masuk")
-                    output("2. Kendaraan Keluar (Hitung Biaya)")
-                    output("3. Cetak Laporan Pendapatan")
-                    output("4. Logout")
-                    output("PILIH MENU (1-4): ")
+                menuPetugas <- ""
+                while menuPetugas != "6" do
+                    cetakJudulMenu("MENU PETUGAS")
+                    output("1. Masuk, 2. Keluar, 3. Edit, 4. Cari, 5. Laporan, 6. Logout")
                     input(menuPetugas)
 
-                    if menuPetugas == 1 then
-                        kendaraanMasuk()
-                    else if menuPetugas == 2 then
-                        kendaraanKeluar()
-                    else if menuPetugas == 3 then
-                        cetakLaporanPendapatan()
-                    else if menuPetugas == 4 then
-                        output("Log out berhasil. Sampai jumpa!")
-                    else
-                        output("Pilihan tidak valid.")
+                    if menuPetugas == "1" then kendaraanMasuk()
+                    else if menuPetugas == "2" then kendaraanKeluar()
+                    else if menuPetugas == "3" then editKendaraan()
+                    else if menuPetugas == "4" then cariKendaraan()
+                    else if menuPetugas == "5" then cetakLaporanPendapatan()
                     endif
                 endwhile
             else
-                output(" Username atau Password salah!")
+                output("Username atau Password salah!")
             endif
-        else if pilihanUtama == 2 then
-            output("\nSistem ditutup. Terima kasih!")
-            break
-        else
-            output("Pilihan tidak valid.")
+        else if pilihanUtama == "3" then
+            output("Sistem ditutup.")
         endif
     endwhile
